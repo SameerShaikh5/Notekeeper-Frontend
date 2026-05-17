@@ -21,6 +21,7 @@ interface NotesContextType {
   activeTopicId: string | null;
   setActiveTopicId: (id: string | null) => void;
   addSubject: (name: string) => Promise<void>;
+  updateSubject: (id: string, name: string) => Promise<void>;
   deleteSubject: (id: string) => Promise<void>;
   addTopic: (subjectId: string, title: string) => Promise<void>;
   updateTopic: (topicId: string, updates: Partial<Topic>) => Promise<void>;
@@ -74,6 +75,19 @@ export const NotesProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       setSubjects((prev) => [...prev, mapMongoId(data)]);
     } catch (error) {
       console.error(error);
+      throw error;
+    }
+  };
+
+  const updateSubject = async (id: string, name: string) => {
+    // optimistic update
+    setSubjects((prev) => prev.map((s) => (s.id === id ? { ...s, name } : s)));
+    try {
+      await api.put(`/notes/subjects/${id}`, { name });
+    } catch (error) {
+      console.error("Error updating subject", error);
+      // rollback could be added here
+      fetchSubjects(); // simple rollback by refetching
       throw error;
     }
   };
@@ -173,6 +187,7 @@ export const NotesProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         activeTopicId,
         setActiveTopicId,
         addSubject,
+        updateSubject,
         deleteSubject,
         addTopic,
         updateTopic,

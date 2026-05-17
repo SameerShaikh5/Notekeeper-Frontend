@@ -6,12 +6,14 @@ import { ThemeToggle } from "./ThemeToggle";
 import toast from "react-hot-toast";
 
 export const Dashboard: React.FC = () => {
-  const { subjects, topics, setActiveTopicId, addSubject, addTopic } = useNotes();
+  const { subjects, topics, setActiveTopicId, addSubject, addTopic, updateSubject } = useNotes();
   const { logout, user } = useAuth();
   const [newSubjectName, setNewSubjectName] = useState("");
   const [isAddingSubject, setIsAddingSubject] = useState(false);
   const [addTopicModal, setAddTopicModal] = useState<{ isOpen: boolean; subjectId: string }>({ isOpen: false, subjectId: "" });
   const [newTopicTitle, setNewTopicTitle] = useState("");
+  const [editingSubjectId, setEditingSubjectId] = useState<string | null>(null);
+  const [editSubjectName, setEditSubjectName] = useState("");
 
   const handleAddSubject = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,6 +42,19 @@ export const Dashboard: React.FC = () => {
       setAddTopicModal({ isOpen: false, subjectId: "" });
     } catch {
       toast.error("Failed to create topic");
+    }
+  };
+
+  const handleEditSubjectSubmit = async (e: React.FormEvent, id: string) => {
+    e.preventDefault();
+    if (!editSubjectName.trim()) return;
+    try {
+      await updateSubject(id, editSubjectName);
+      toast.success("Subject renamed");
+      setEditingSubjectId(null);
+    } catch (error: any) {
+      console.error(error);
+      toast.error(`Failed to rename: ${error.response?.data?.error || error.message}`);
     }
   };
 
@@ -156,10 +171,31 @@ export const Dashboard: React.FC = () => {
               return (
                 <div key={subject.id} className="bg-card border border-border rounded-xl shadow-sm hover:shadow-md transition-shadow overflow-hidden flex flex-col">
                   <div className="p-5 border-b border-border/50 bg-secondary/20 flex items-center justify-between">
-                    <h3 className="font-semibold text-lg flex items-center gap-2">
-                      <FolderOpen className="w-5 h-5 text-primary" />
-                      {subject.name}
-                    </h3>
+                    <div className="font-semibold text-lg flex items-center gap-2 group flex-1 mr-2">
+                      <FolderOpen className="w-5 h-5 text-primary shrink-0" />
+                      {editingSubjectId === subject.id ? (
+                        <form onSubmit={(e) => handleEditSubjectSubmit(e, subject.id)} className="flex-1 min-w-0">
+                          <input
+                            autoFocus
+                            value={editSubjectName}
+                            onChange={(e) => setEditSubjectName(e.target.value)}
+                            onBlur={(e) => {
+                              if (editSubjectName !== subject.name) handleEditSubjectSubmit(e, subject.id);
+                              else setEditingSubjectId(null);
+                            }}
+                            className="w-full px-2 py-0.5 bg-background text-sm border border-border rounded-md focus:outline-none focus:ring-1 focus:ring-primary font-normal"
+                          />
+                        </form>
+                      ) : (
+                        <span 
+                          onClick={() => { setEditingSubjectId(subject.id); setEditSubjectName(subject.name); }}
+                          className="cursor-pointer hover:underline truncate"
+                          title="Click to rename"
+                        >
+                          {subject.name}
+                        </span>
+                      )}
+                    </div>
                     <span className="text-xs font-medium px-2 py-1 bg-background rounded-full text-muted-foreground border border-border">
                       {subjectTopics.length} notes
                     </span>

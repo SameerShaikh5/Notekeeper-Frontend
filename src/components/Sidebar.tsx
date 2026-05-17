@@ -26,6 +26,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
   const [modalInput, setModalInput] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
+  const [editingSubjectId, setEditingSubjectId] = useState<string | null>(null);
+  const [editSubjectName, setEditSubjectName] = useState("");
+  const { updateSubject } = useNotes();
+
   useEffect(() => {
     if (modalConfig.isOpen && inputRef.current) {
       inputRef.current.focus();
@@ -71,6 +75,18 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
       setModalInput("");
     } catch (error) {
       toast.error("Failed to add item");
+    }
+  };
+
+  const handleEditSubjectSubmit = async (e: React.FormEvent, id: string) => {
+    e.preventDefault();
+    if (!editSubjectName.trim()) return;
+    try {
+      await updateSubject(id, editSubjectName);
+      setEditingSubjectId(null);
+    } catch (error: any) {
+      console.error(error);
+      toast.error(`Failed to rename: ${error.response?.data?.error || error.message}`);
     }
   };
 
@@ -188,11 +204,32 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
               <div key={subject.id} className="mb-2">
                 <div 
                   className="flex items-center justify-between p-2 rounded-md md:hover:bg-secondary/50 cursor-pointer group transition-colors"
-                  onClick={() => toggleSubject(subject.id)}
                 >
-                  <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
-                    {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-                    {subject.name} <span className="text-xs font-normal opacity-70">({subjectTopics.length})</span>
+                  <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground flex-1 min-w-0" onClick={() => editingSubjectId !== subject.id && toggleSubject(subject.id)}>
+                    {isExpanded ? <ChevronDown className="w-4 h-4 shrink-0" /> : <ChevronRight className="w-4 h-4 shrink-0" />}
+                    {editingSubjectId === subject.id ? (
+                      <form onSubmit={(e) => handleEditSubjectSubmit(e, subject.id)} className="flex-1 min-w-0 mr-2" onClick={e => e.stopPropagation()}>
+                        <input
+                          autoFocus
+                          value={editSubjectName}
+                          onChange={(e) => setEditSubjectName(e.target.value)}
+                          onBlur={(e) => {
+                            if (editSubjectName !== subject.name) handleEditSubjectSubmit(e, subject.id);
+                            else setEditingSubjectId(null);
+                          }}
+                          className="w-full px-1 py-0.5 bg-background text-sm border border-border rounded focus:outline-none focus:ring-1 focus:ring-primary font-normal text-foreground"
+                        />
+                      </form>
+                    ) : (
+                      <span 
+                        className="truncate hover:underline" 
+                        onDoubleClick={(e) => { e.stopPropagation(); setEditingSubjectId(subject.id); setEditSubjectName(subject.name); }}
+                        title="Double-click to rename"
+                      >
+                        {subject.name}
+                      </span>
+                    )}
+                    <span className="text-xs font-normal opacity-70 shrink-0">({subjectTopics.length})</span>
                   </div>
                   <button 
                     onClick={(e) => { e.stopPropagation(); openAddTopicModal(subject.id); }}
