@@ -1,16 +1,16 @@
 
-import { useState } from "react";
+// React is implicitly imported in Vite/React 17+
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/AuthContext";
-import { NotesProvider } from "./context/NotesContext";
-import { Sidebar } from "./components/Sidebar";
-import { BlockEditor } from "./components/Editor/BlockEditor";
+import { NotesProvider, useNotes } from "./context/NotesContext";
+import { EditorLayout } from "./components/EditorLayout";
+import { Dashboard } from "./components/Dashboard";
 import { Login } from "./pages/Login";
 import { Signup } from "./pages/Signup";
 
 function MainApp() {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const { user, loading } = useAuth();
+  const { activeTopicId } = useNotes();
 
   if (loading) return <div className="h-screen flex items-center justify-center bg-background text-foreground">Loading...</div>;
 
@@ -19,12 +19,9 @@ function MainApp() {
   }
 
   return (
-    <NotesProvider>
-      <div className="flex h-screen bg-background text-foreground overflow-hidden relative">
-        <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
-        <BlockEditor onOpenSidebar={() => setIsSidebarOpen(true)} />
-      </div>
-    </NotesProvider>
+    <div className="h-screen bg-background text-foreground overflow-hidden">
+      {activeTopicId ? <EditorLayout /> : <Dashboard />}
+    </div>
   );
 }
 
@@ -35,14 +32,16 @@ function App() {
   return (
     <ThemeProvider defaultTheme="dark" storageKey="notekeeper-theme">
       <AuthProvider>
-        <BrowserRouter>
-          <Toaster position="bottom-right" toastOptions={{ style: { background: '#333', color: '#fff' } }} />
-          <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route path="/signup" element={<Signup />} />
-            <Route path="/" element={<MainApp />} />
-          </Routes>
-        </BrowserRouter>
+        <NotesProvider>
+          <BrowserRouter>
+            <Toaster position="bottom-right" toastOptions={{ style: { background: '#333', color: '#fff' } }} />
+            <Routes>
+              <Route path="/login" element={<Login />} />
+              <Route path="/signup" element={<Signup />} />
+              <Route path="/" element={<MainApp />} />
+            </Routes>
+          </BrowserRouter>
+        </NotesProvider>
       </AuthProvider>
     </ThemeProvider>
   );

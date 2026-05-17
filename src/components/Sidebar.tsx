@@ -169,7 +169,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
 
       <div className="flex-1 overflow-y-auto p-2">
         <DragDropContext onDragEnd={handleDragEnd}>
-          {subjects.map((subject) => {
+          {subjects
+            .filter((subject) => {
+              // Only show the subject that contains the currently active topic
+              if (!activeTopicId) return true;
+              const activeSubjectId = topics.find(t => t.id === activeTopicId)?.subjectId;
+              return subject.id === activeSubjectId;
+            })
+            .map((subject) => {
             const subjectTopics = topics
               .filter((t) => t.subjectId === subject.id)
               .filter((t) => t.title.toLowerCase().includes(searchQuery.toLowerCase()))
